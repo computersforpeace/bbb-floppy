@@ -139,7 +139,6 @@ static int write_value(int fd, int val)
 
 static int set_direction(int dir)
 {
-	//printf("Setting direction: %d\n", dir);
 	write_value(dir_fd, dir);
 	floppy_direction = dir;
 }
@@ -191,8 +190,6 @@ int tone(int hz, int ms)
 	int us = 1000000 / hz;
 	int cycles = 1000 * ms / us;
 	int i;
-
-	printf("us: %d, cycles: %d\n", us, cycles);
 
 	for (i = 0; i < cycles; i++) {
 		take_step();
