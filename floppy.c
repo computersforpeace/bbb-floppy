@@ -314,10 +314,10 @@ int main(int argc, char **argv)
 	udelay(1, 0);
 	printf("GO!\n");
 
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < 2; i++)
 		looney_tunes();
 
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < 5; i++) {
 		tone(A4, 100);
 		tone(B4, 100);
 		tone(C5, 100);
