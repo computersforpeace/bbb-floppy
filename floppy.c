@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <math.h>
 
 #define GPIO_IDX_STEP	60
 #define GPIO_IDX_DIR	50
@@ -185,37 +186,58 @@ int take_step(void)
 		set_direction(0);
 }
 
-int tone(int hz, int ms)
+static double get_frequency(double delta_a4)
 {
-	int us = 1000000 / hz;
-	int cycles = 1000 * ms / us;
+	return 440.0 * pow(2, (double)delta_a4 / 12.0);
+}
+
+static long int get_period_us(double delta_a4)
+{
+	return lround(1000000.0 / get_frequency(delta_a4));
+}
+
+#define MIN_DELTA_A4	-24
+#define MAX_DELTA_A4	24
+
+/* Period of tones, given in microseconds */
+static long int tone_period_us[MIN_DELTA_A4 + MAX_DELTA_A4 + 1];
+
+static void init_tones(void)
+{
+	int i;
+	for (i = MIN_DELTA_A4; i <= MAX_DELTA_A4; i++)
+		tone_period_us[i - MIN_DELTA_A4] = get_period_us(i);
+}
+
+int tone(int tone_us, int ms)
+{
+	int cycles = 1000 * ms / tone_us;
 	int i;
 
 	for (i = 0; i < cycles; i++) {
 		take_step();
-		udelay(0, us);
+		udelay(0, tone_us);
 	}
 	return 0;
 }
 
-enum {
-	G3  = 196,
-	A3  = 220,
-	B3  = 247,
-	C4  = 262,
-	D4  = 294,
-	E4  = 330,
-	F4  = 349,
-	G4  = 392,
-	A4  = 440,
-	B4  = 494,
-	C5  = 523,
-	D5  = 587,
-	E5  = 659,
-	F5  = 698,
-	G5  = 784,
+#define get_us(delta)	(tone_period_us[(delta) - MIN_DELTA_A4])
 
-};
+#define G3	get_us(-14)
+#define A3	get_us(-12)
+#define B3	get_us(-10)
+#define C4	get_us(-9)
+#define D4	get_us(-7)
+#define E4	get_us(-5)
+#define F4	get_us(-4)
+#define G4	get_us(-2)
+#define A4	get_us(0)
+#define B4	get_us(2)
+#define C5	get_us(3)
+#define D5	get_us(5)
+#define E5	get_us(7)
+#define F5	get_us(8)
+#define G5	get_us(10)
 
 void looney_tunes()
 {
@@ -304,6 +326,8 @@ void looney_tunes()
 int main(int argc, char **argv)
 {
 	int i;
+
+	init_tones();
 
 	if (init_gpios())
 		return EXIT_FAILURE;
