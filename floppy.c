@@ -328,6 +328,54 @@ void looney_tunes()
 	tone(C4, 1000);
 }
 
+struct note {
+	int delta_a4;
+	int duration;
+};
+
+#define SIXTEENTH	1
+#define EIGHTH		2
+#define QUARTER		4
+#define HALF		8
+#define WHOLE		16
+
+#define DOT(note) ((note) * 3 / 2)
+
+#define NOTE(_delta_a4, _duration) { \
+	.delta_a4	= (_delta_a4), \
+	.duration	= (_duration), \
+}
+
+struct note mario[] = {
+	NOTE(4, SIXTEENTH),
+	NOTE(4, EIGHTH),
+	NOTE(4, EIGHTH),
+	NOTE(0, SIXTEENTH),
+	NOTE(4, EIGHTH),
+
+	NOTE(7, QUARTER),
+	NOTE(-5, WHOLE),
+
+	NOTE(-5, SIXTEENTH),
+	NOTE(-3, SIXTEENTH),
+	NOTE(-1, SIXTEENTH),
+	NOTE(-5, SIXTEENTH),
+};
+
+static void play_mario(void)
+{
+	int i;
+	for (i = 0; i < sizeof(mario) / sizeof(*mario); i++) {
+		struct note *n = &mario[i];
+		long int period_us = get_us(n->delta_a4 - 17);
+		int ms = n->duration * 50;
+		printf("us: %ld, dur: %d\n", period_us, ms);
+		tone(period_us, ms);
+		ms *= 1500;
+		udelay(ms / 1000000, ms % 1000000);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int i;
@@ -342,6 +390,8 @@ int main(int argc, char **argv)
 	printf("Done resetting...\n");
 	udelay(1, 0);
 	printf("GO!\n");
+
+	play_mario();
 
 	for (i = 0; i < 2; i++)
 		looney_tunes();
