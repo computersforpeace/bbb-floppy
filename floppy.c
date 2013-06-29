@@ -209,6 +209,13 @@ static void init_tones(void)
 		tone_period_us[i - MIN_DELTA_A4] = get_period_us(i);
 }
 
+static void add_to_timespec(struct timespec *ts, int us)
+{
+	ts->tv_nsec += us * 1000;
+	ts->tv_sec += ts->tv_nsec / 1000000000;
+	ts->tv_nsec %= 1000000000;
+}
+
 int tone(int tone_us, int ms)
 {
 	int cycles = 1000 * ms / tone_us;
@@ -223,9 +230,7 @@ int tone(int tone_us, int ms)
 
 	for (i = 0; i < cycles; i++) {
 		take_step();
-		ts.tv_nsec += tone_us * 1000;
-		ts.tv_sec += ts.tv_nsec / 1000000000;
-		ts.tv_nsec %= 1000000000;
+		add_to_timespec(&ts, tone_us);
 		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 		if (ret < 0) {
 			perror("clock_nanosleep");
