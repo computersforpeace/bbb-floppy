@@ -1,5 +1,5 @@
 CC := gcc
-LDFLAGS := -lm
+LDFLAGS := -lm -lrt
 
 all: floppy
 

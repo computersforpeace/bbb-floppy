@@ -215,8 +215,13 @@ int tone(int tone_us, int ms)
 	int i;
 
 	for (i = 0; i < cycles; i++) {
+		struct timespec ts;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
 		take_step();
-		udelay(0, tone_us);
+		ts.tv_nsec += tone_us * 1000;
+		ts.tv_sec += ts.tv_nsec / 1000000000;
+		ts.tv_nsec %= 1000000000;
+		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 	}
 	return 0;
 }
