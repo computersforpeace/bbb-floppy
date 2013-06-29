@@ -169,7 +169,7 @@ int reset_floppy_positions(void)
 	for (i = 0; i < FLOPPY_MAX_STEP; i++) {
 		write_value(step_fd, 0);
 		write_value(step_fd, 1);
-		udelay(0, 5000);
+		udelay(0, 2000);
 	}
 
 	set_direction(1);
