@@ -213,10 +213,10 @@ int tone(int tone_us, int ms)
 {
 	int cycles = 1000 * ms / tone_us;
 	int i;
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
 	for (i = 0; i < cycles; i++) {
-		struct timespec ts;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
 		take_step();
 		ts.tv_nsec += tone_us * 1000;
 		ts.tv_sec += ts.tv_nsec / 1000000000;
