@@ -212,16 +212,25 @@ static void init_tones(void)
 int tone(int tone_us, int ms)
 {
 	int cycles = 1000 * ms / tone_us;
-	int i;
+	int i, ret;
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+	if (ret < 0) {
+		perror("clock_gettime");
+		return errno;
+	}
 
 	for (i = 0; i < cycles; i++) {
 		take_step();
 		ts.tv_nsec += tone_us * 1000;
 		ts.tv_sec += ts.tv_nsec / 1000000000;
 		ts.tv_nsec %= 1000000000;
-		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+		if (ret < 0) {
+			perror("clock_nanosleep");
+			return errno;
+		}
 	}
 	return 0;
 }
