@@ -3,4 +3,4 @@ LDLIBS := -lm -lrt
 
 all: floppy
 
-floppy: floppy.c
+floppy: floppy.o
