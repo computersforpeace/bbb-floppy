@@ -355,7 +355,9 @@ struct note {
 	.duration	= (_duration), \
 }
 
-struct note mario[] = {
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+
+struct note mario1[] = {
 	NOTE(4, SIXTEENTH),
 	NOTE(4, EIGHTH),
 	NOTE(4, EIGHTH),
@@ -364,7 +366,9 @@ struct note mario[] = {
 
 	NOTE(7, QUARTER),
 	NOTE(-5, QUARTER),
+};
 
+struct note mario2[] = {
 	NOTE(0, DOT(EIGHTH)),
 	NOTE(-5, DOT(EIGHTH)),
 
@@ -384,21 +388,55 @@ struct note mario[] = {
 	NOTE(0, SIXTEENTH),
 	NOTE(2, SIXTEENTH),
 	NOTE(-1, DOT(EIGHTH)),
-
 };
 
-static void play_mario(void)
+struct note mario3[] = {
+	NOTE(0, EIGHTH),
+	NOTE(7, SIXTEENTH),
+	NOTE(6, SIXTEENTH),
+	NOTE(5, SIXTEENTH),
+	NOTE(2, SIXTEENTH),
+	NOTE(3, SIXTEENTH),
+	NOTE(4, EIGHTH),
+	NOTE(-5, SIXTEENTH),
+	NOTE(-3, SIXTEENTH),
+	NOTE(0, EIGHTH),
+	NOTE(-3, SIXTEENTH),
+	NOTE(0, SIXTEENTH),
+	NOTE(2, EIGHTH),
+
+	NOTE(7, SIXTEENTH),
+	NOTE(6, SIXTEENTH),
+	NOTE(5, SIXTEENTH),
+	NOTE(2, SIXTEENTH),
+	NOTE(3, SIXTEENTH),
+	NOTE(4, EIGHTH),
+	NOTE(12, EIGHTH),
+	NOTE(12, SIXTEENTH),
+	NOTE(12, EIGHTH),
+	NOTE(12, EIGHTH),
+};
+
+static void play_score(struct note *score, int len)
 {
 	int i;
-	for (i = 0; i < sizeof(mario) / sizeof(*mario); i++) {
-		struct note *n = &mario[i];
+	for (i = 0; i < len; i++) {
+		struct note *n = &score[i];
 		long int period_us = get_us(n->delta_a4 - 12);
 		int ms = n->duration * 50;
-		printf("us: %ld, dur: %d\n", period_us, ms);
 		tone(period_us, ms);
 		ms *= 1500;
 		udelay(ms / 1000000, ms % 1000000);
 	}
+}
+
+static void play_mario(void)
+{
+	play_score(mario1, ARRAY_SIZE(mario1));
+	play_score(mario2, ARRAY_SIZE(mario2));
+	play_score(mario2, ARRAY_SIZE(mario2));
+	play_score(mario3, ARRAY_SIZE(mario3));
+	play_score(mario3, ARRAY_SIZE(mario3));
 }
 
 int main(int argc, char **argv)
