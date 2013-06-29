@@ -363,12 +363,28 @@ struct note mario[] = {
 	NOTE(4, EIGHTH),
 
 	NOTE(7, QUARTER),
-	NOTE(-5, WHOLE),
+	NOTE(-5, QUARTER),
+
+	NOTE(0, DOT(EIGHTH)),
+	NOTE(-5, DOT(EIGHTH)),
+
+	NOTE(-8, QUARTER + SIXTEENTH),
+	NOTE(-3, SIXTEENTH),
+	NOTE(-1, EIGHTH),
+	NOTE(-2, SIXTEENTH),
+	NOTE(-3, EIGHTH),
 
 	NOTE(-5, SIXTEENTH),
-	NOTE(-3, SIXTEENTH),
-	NOTE(-1, SIXTEENTH),
-	NOTE(-5, SIXTEENTH),
+	NOTE(4, EIGHTH),
+	NOTE(7, SIXTEENTH),
+	NOTE(9, EIGHTH),
+	NOTE(5, SIXTEENTH),
+	NOTE(7, EIGHTH),
+	NOTE(4, EIGHTH),
+	NOTE(0, SIXTEENTH),
+	NOTE(2, SIXTEENTH),
+	NOTE(-1, DOT(EIGHTH)),
+
 };
 
 static void play_mario(void)
@@ -376,7 +392,7 @@ static void play_mario(void)
 	int i;
 	for (i = 0; i < sizeof(mario) / sizeof(*mario); i++) {
 		struct note *n = &mario[i];
-		long int period_us = get_us(n->delta_a4 - 17);
+		long int period_us = get_us(n->delta_a4 - 12);
 		int ms = n->duration * 50;
 		printf("us: %ld, dur: %d\n", period_us, ms);
 		tone(period_us, ms);
@@ -402,15 +418,5 @@ int main(int argc, char **argv)
 
 	play_mario();
 
-	for (i = 0; i < 2; i++)
-		looney_tunes();
-
-	for (i = 0; i < 5; i++) {
-		tone(A4, 100);
-		tone(B4, 100);
-		tone(C5, 100);
-		tone(B4, 100);
-	}
-	tone(A4, 1000);
 	return 0;
 }
