@@ -173,6 +173,8 @@ int reset_floppy_positions(void)
 	}
 
 	set_direction(1);
+
+	return 0;
 }
 
 int take_step(void)
