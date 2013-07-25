@@ -4,7 +4,7 @@ LDLIBS := -lm -lrt
 
 all: floppy
 
-floppy: floppy.o
+floppy: floppy.o move-ctrl.o move-ctrl.h
 
 clean:
 	rm -f *.o floppy
