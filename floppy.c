@@ -95,8 +95,7 @@ static int open_gpio(int idx)
 
 static int init_gpios(void)
 {
-	char str[80];
-	int fd, ret;
+	int ret;
 
 	ret = export_gpio(GPIO_IDX_STEP);
 	if (ret)
@@ -142,6 +141,8 @@ static int set_direction(int dir)
 {
 	write_value(dir_fd, dir);
 	floppy_direction = dir;
+
+	return 0;
 }
 
 int udelay(int sec, int us)
@@ -186,6 +187,8 @@ int take_step(void)
 		set_direction(1);
 	else if (floppy_direction == 1 && floppy_position == FLOPPY_MAX_STEP - 1)
 		set_direction(0);
+
+	return 0;
 }
 
 static double get_frequency(double delta_a4)
@@ -448,8 +451,6 @@ static void play_mario(void)
 
 int main(int argc, char **argv)
 {
-	int i;
-
 	init_tones();
 
 	if (init_gpios())
