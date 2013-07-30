@@ -259,13 +259,18 @@ struct note mario3[] = {
 	NOTE(12, EIGHTH),
 };
 
-static void play_score(struct note *score, int len)
+enum {
+	SPEED_NORMAL = 4,
+	SPEED_FAST = 2,
+};
+
+static void play_score(struct note *score, int len, int speed)
 {
 	int i;
 	for (i = 0; i < len; i++) {
 		struct note *n = &score[i];
 		long int period_us = get_us(n->delta_a4 - 12);
-		int ms = n->duration * 50;
+		int ms = n->duration * 12 * speed;
 		tone(period_us, ms);
 		ms *= 1500;
 		udelay(ms / 1000000, ms % 1000000);
@@ -274,11 +279,13 @@ static void play_score(struct note *score, int len)
 
 static void play_mario(void)
 {
-	play_score(mario1, ARRAY_SIZE(mario1));
-	play_score(mario2, ARRAY_SIZE(mario2));
-	play_score(mario2, ARRAY_SIZE(mario2));
-	play_score(mario3, ARRAY_SIZE(mario3));
-	play_score(mario3, ARRAY_SIZE(mario3));
+	int speed = SPEED_NORMAL;
+
+	play_score(mario1, ARRAY_SIZE(mario1), speed);
+	play_score(mario2, ARRAY_SIZE(mario2), speed);
+	play_score(mario2, ARRAY_SIZE(mario2), speed);
+	play_score(mario3, ARRAY_SIZE(mario3), speed);
+	play_score(mario3, ARRAY_SIZE(mario3), speed);
 }
 
 int main(int argc, char **argv)
