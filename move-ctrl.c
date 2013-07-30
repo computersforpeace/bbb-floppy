@@ -9,6 +9,8 @@
 #include <time.h>
 #include <math.h>
 
+#include "move-ctrl.h"
+
 #define GPIO_IDX_STEP	60
 #define GPIO_IDX_DIR	50
 
