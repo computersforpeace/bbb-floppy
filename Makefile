@@ -1,5 +1,5 @@
 CC := $(CROSS)gcc
-CFLAGS := -Wall -g
+CPPFLAGS := -Wall -g -MMD
 LDLIBS := -lm -lrt
 
 OBJECTS := floppy.o move-ctrl.o
@@ -8,9 +8,7 @@ all: floppy
 
 floppy: $(OBJECTS)
 
-floppy.o: move-ctrl.h
-
-move-ctrl.o: move-ctrl.h
+-include $(OBJECTS:%=%.d)
 
 clean:
-	rm -f *.o floppy
+	rm -f *.o *.d floppy
