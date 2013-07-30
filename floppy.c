@@ -37,7 +37,7 @@ static long int get_period_us(double delta_a4)
 #define MAX_DELTA_A4	24
 
 /* Period of tones, given in microseconds */
-static long int tone_period_us[MIN_DELTA_A4 + MAX_DELTA_A4 + 1];
+static long int tone_period_us[MAX_DELTA_A4 - MIN_DELTA_A4 + 1];
 
 static void init_tones(void)
 {
