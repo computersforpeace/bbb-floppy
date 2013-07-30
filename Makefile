@@ -1,5 +1,5 @@
-CC := gcc
-CFLAGS := -Wall
+CC := $(CROSS)gcc
+CFLAGS := -Wall -g
 LDLIBS := -lm -lrt
 
 all: floppy
