@@ -12,3 +12,6 @@ floppy: $(OBJECTS)
 
 clean:
 	rm -f *.o *.d floppy
+
+tags::
+	ctags -R
