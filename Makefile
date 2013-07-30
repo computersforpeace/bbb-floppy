@@ -2,9 +2,11 @@ CC := $(CROSS)gcc
 CFLAGS := -Wall -g
 LDLIBS := -lm -lrt
 
+OBJECTS := floppy.o move-ctrl.o
+
 all: floppy
 
-floppy: floppy.o move-ctrl.o
+floppy: $(OBJECTS)
 
 floppy.o: move-ctrl.h
 
