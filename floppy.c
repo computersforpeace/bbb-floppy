@@ -79,105 +79,21 @@ int tone(int tone_us, int ms)
 
 #define get_us(delta)	(tone_period_us[(delta) - MIN_DELTA_A4])
 
-#define G3	get_us(-14)
-#define A3	get_us(-12)
-#define B3	get_us(-10)
-#define C4	get_us(-9)
-#define D4	get_us(-7)
-#define E4	get_us(-5)
-#define F4	get_us(-4)
-#define G4	get_us(-2)
-#define A4	get_us(0)
-#define B4	get_us(2)
-#define C5	get_us(3)
-#define D5	get_us(5)
-#define E5	get_us(7)
-#define F5	get_us(8)
-#define G5	get_us(10)
-
-void looney_tunes()
-{
-	int i;
-
-	tone(E4, 300);
-	tone(D4, 100);
-
-	tone(C4, 200);
-	tone(D4, 200);
-
-	tone(E4, 200);
-	tone(E4, 200);
-
-	tone(E4, 200);
-	tone(C4, 200);
-
-	tone(D4, 200);
-	tone(D4, 200);
-
-	tone(D4, 200);
-	tone(D4, 200 + 4 * 200);
-
-
-	tone(D4, 300);
-	tone(C4, 100);
-
-	tone(B3, 200);
-	tone(C4, 200);
-
-	tone(D4, 200);
-	tone(D4, 200);
-
-	tone(D4, 200);
-	tone(B3, 200);
-
-	tone(C4, 200);
-	tone(C4, 200);
-
-	tone(C4, 200);
-	tone(C4, 200 + 4 * 200);
-
-
-	tone(G3, 400);
-
-	tone(A3, 400);
-
-	tone(G3, 400);
-
-	tone(A3, 400);
-
-	tone(G3, 200);
-	tone(D4, 200);
-
-	tone(D4, 200);
-	tone(D4, 200 + 4 * 200);
-
-
-	tone(G3, 400);
-
-	tone(A3, 400);
-
-	tone(G3, 400);
-
-	tone(A3, 400);
-
-	tone(G3, 200);
-	tone(C4, 200);
-
-	tone(C4, 200);
-	tone(C4, 200 + 4 * 200);
-
-	tone(G4, 200);
-	tone(F4, 200);
-	tone(E4, 200);
-	tone(D4, 200);
-	tone(C4, 50);
-
-	for (i = 0; i < 8; i++) {
-		tone(D4, 50);
-		tone(C4, 50);
-	}
-	tone(C4, 1000);
-}
+#define G3	-5
+#define A3	-3
+#define B3	-1
+#define C4	0
+#define D4	2
+#define E4	4
+#define F4	5
+#define G4	7
+#define A4	9
+#define B4	11
+#define C5	12
+#define D5	14
+#define E5	16
+#define F5	17
+#define G5	19
 
 struct note {
 	int delta_a4;
@@ -259,6 +175,100 @@ struct note mario3[] = {
 	NOTE(12, EIGHTH),
 };
 
+struct note looney_tunes[] = {
+	NOTE(E4, DOT(EIGHTH)),
+	NOTE(D4, SIXTEENTH),
+
+	NOTE(C4, EIGHTH),
+	NOTE(D4, EIGHTH),
+
+	NOTE(E4, EIGHTH),
+	NOTE(E4, EIGHTH),
+
+	NOTE(E4, EIGHTH),
+	NOTE(C4, EIGHTH),
+
+	NOTE(D4, EIGHTH),
+	NOTE(D4, EIGHTH),
+
+	NOTE(D4, EIGHTH),
+	NOTE(D4, EIGHTH + 4 * EIGHTH),
+
+
+	NOTE(D4, DOT(EIGHTH)),
+	NOTE(C4, SIXTEENTH),
+
+	NOTE(B3, EIGHTH),
+	NOTE(C4, EIGHTH),
+
+	NOTE(D4, EIGHTH),
+	NOTE(D4, EIGHTH),
+
+	NOTE(D4, EIGHTH),
+	NOTE(B3, EIGHTH),
+
+	NOTE(C4, EIGHTH),
+	NOTE(C4, EIGHTH),
+
+	NOTE(C4, EIGHTH),
+	NOTE(C4, EIGHTH + 4 * EIGHTH),
+
+
+	NOTE(G3, QUARTER),
+
+	NOTE(A3, QUARTER),
+
+	NOTE(G3, QUARTER),
+
+	NOTE(A3, QUARTER),
+
+	NOTE(G3, EIGHTH),
+	NOTE(D4, EIGHTH),
+
+	NOTE(D4, EIGHTH),
+	NOTE(D4, EIGHTH + 4 * EIGHTH),
+
+
+	NOTE(G3, QUARTER),
+
+	NOTE(A3, QUARTER),
+
+	NOTE(G3, QUARTER),
+
+	NOTE(A3, QUARTER),
+
+	NOTE(G3, EIGHTH),
+	NOTE(C4, EIGHTH),
+
+	NOTE(C4, EIGHTH),
+	NOTE(C4, EIGHTH + 4 * EIGHTH),
+
+	NOTE(G4, EIGHTH),
+	NOTE(F4, EIGHTH),
+	NOTE(E4, EIGHTH),
+	NOTE(D4, EIGHTH),
+	NOTE(C4, SIXTEENTH),
+
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+	NOTE(D4, SIXTEENTH),
+	NOTE(C4, SIXTEENTH),
+
+	NOTE(C4, WHOLE),
+};
+
 enum {
 	SPEED_NORMAL = 4,
 	SPEED_FAST = 2,
@@ -288,6 +298,11 @@ static void play_mario(void)
 	play_score(mario3, ARRAY_SIZE(mario3), speed);
 }
 
+static void play_looney_tunes(void)
+{
+	play_score(looney_tunes, ARRAY_SIZE(looney_tunes), SPEED_FAST);
+}
+
 int main(int argc, char **argv)
 {
 	init_tones();
@@ -298,6 +313,8 @@ int main(int argc, char **argv)
 	printf("Done resetting...\n");
 	udelay(1, 0);
 	printf("GO!\n");
+
+	play_looney_tunes();
 
 	play_mario();
 
