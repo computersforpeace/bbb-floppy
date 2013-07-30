@@ -113,8 +113,6 @@ struct note {
 	.duration	= (_duration), \
 }
 
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
-
 struct note mario1[] = {
 	NOTE(4, SIXTEENTH),
 	NOTE(4, EIGHTH),
@@ -124,6 +122,8 @@ struct note mario1[] = {
 
 	NOTE(7, QUARTER),
 	NOTE(-5, QUARTER),
+
+	{},
 };
 
 struct note mario2[] = {
@@ -146,6 +146,8 @@ struct note mario2[] = {
 	NOTE(0, SIXTEENTH),
 	NOTE(2, SIXTEENTH),
 	NOTE(-1, DOT(EIGHTH)),
+
+	{},
 };
 
 struct note mario3[] = {
@@ -173,6 +175,8 @@ struct note mario3[] = {
 	NOTE(12, SIXTEENTH),
 	NOTE(12, EIGHTH),
 	NOTE(12, EIGHTH),
+
+	{},
 };
 
 struct note looney_tunes[] = {
@@ -267,6 +271,8 @@ struct note looney_tunes[] = {
 	NOTE(C4, SIXTEENTH),
 
 	NOTE(C4, WHOLE),
+
+	{},
 };
 
 enum {
@@ -274,16 +280,16 @@ enum {
 	SPEED_FAST = 2,
 };
 
-static void play_score(struct note *score, int len, int speed)
+static void play_score(struct note *score, int speed)
 {
-	int i;
-	for (i = 0; i < len; i++) {
-		struct note *n = &score[i];
+	struct note *n = score;
+	while (n->duration) {
 		long int period_us = get_us(n->delta_a4 - 12);
 		int ms = n->duration * 12 * speed;
 		tone(period_us, ms);
 		ms *= 1500;
 		udelay(ms / 1000000, ms % 1000000);
+		n++;
 	}
 }
 
@@ -291,16 +297,16 @@ static void play_mario(void)
 {
 	int speed = SPEED_NORMAL;
 
-	play_score(mario1, ARRAY_SIZE(mario1), speed);
-	play_score(mario2, ARRAY_SIZE(mario2), speed);
-	play_score(mario2, ARRAY_SIZE(mario2), speed);
-	play_score(mario3, ARRAY_SIZE(mario3), speed);
-	play_score(mario3, ARRAY_SIZE(mario3), speed);
+	play_score(mario1, speed);
+	play_score(mario2, speed);
+	play_score(mario2, speed);
+	play_score(mario3, speed);
+	play_score(mario3, speed);
 }
 
 static void play_looney_tunes(void)
 {
-	play_score(looney_tunes, ARRAY_SIZE(looney_tunes), SPEED_FAST);
+	play_score(looney_tunes, SPEED_FAST);
 }
 
 int main(int argc, char **argv)
