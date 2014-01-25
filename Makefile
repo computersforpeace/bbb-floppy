@@ -1,5 +1,5 @@
 CC := $(CROSS)gcc
-CPPFLAGS := -Wall -g -MMD
+CPPFLAGS := -Wall -Wextra -g -MMD
 LDLIBS := -lm -lrt
 
 OBJECTS := floppy.o move-ctrl.o

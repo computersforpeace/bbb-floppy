@@ -50,7 +50,7 @@ static int export_gpio(int idx)
 		if (ret < 0) {
 			perror("write to export");
 			return errno;
-		} else if (ret < strlen(str)) {
+		} else if ((size_t)ret < strlen(str)) {
 			printf("error: didn't write full length\n");
 			return -1;
 		}
@@ -70,7 +70,7 @@ static int export_gpio(int idx)
 	if (ret < 0) {
 		perror("write");
 		return errno;
-	} else if (ret < strlen("out")) {
+	} else if ((size_t)ret < strlen("out")) {
 		printf("error: didn't write full length\n");
 		return -1;
 	}

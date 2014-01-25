@@ -123,7 +123,7 @@ struct note mario1[] = {
 	NOTE(7, QUARTER),
 	NOTE(-5, QUARTER),
 
-	{},
+	{0, 0},
 };
 
 struct note mario2[] = {
@@ -147,7 +147,7 @@ struct note mario2[] = {
 	NOTE(2, SIXTEENTH),
 	NOTE(-1, DOT(EIGHTH)),
 
-	{},
+	{0, 0},
 };
 
 struct note mario3[] = {
@@ -176,7 +176,7 @@ struct note mario3[] = {
 	NOTE(12, EIGHTH),
 	NOTE(12, EIGHTH),
 
-	{},
+	{0, 0},
 };
 
 struct note looney_tunes[] = {
@@ -272,7 +272,7 @@ struct note looney_tunes[] = {
 
 	NOTE(C4, WHOLE),
 
-	{},
+	{0, 0},
 };
 
 enum {
@@ -309,7 +309,7 @@ static void play_looney_tunes(void)
 	play_score(looney_tunes, SPEED_FAST);
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	init_tones();
 
