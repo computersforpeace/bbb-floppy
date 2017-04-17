@@ -15,6 +15,10 @@
 
 #include "move-ctrl.h"
 
+#include <list>
+
+static int debug = 0;
+
 int udelay(int sec, int us)
 {
 	struct timespec ts;
@@ -41,8 +45,8 @@ static long int get_period_us(double delta_a4)
 	return lround(1000000.0 / get_frequency(delta_a4));
 }
 
-#define MIN_DELTA_A4	-24
-#define MAX_DELTA_A4	24
+#define MIN_DELTA_A4	-72
+#define MAX_DELTA_A4	72
 
 /* Period of tones, given in microseconds */
 static long int tone_period_us[MAX_DELTA_A4 - MIN_DELTA_A4 + 1];
@@ -66,6 +70,12 @@ int tone(int tone_us, int ms)
 	int cycles = 1000 * ms / tone_us;
 	int i, ret;
 	struct timespec ts;
+
+	if (cycles == 0)
+		cycles = 1;
+
+	if (debug)
+		printf("cycles: %d\n", cycles);
 
 	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 	if (ret < 0) {
@@ -135,20 +145,11 @@ static void play_note(struct note *n)
 {
 	long int period_us = get_us(n->delta_a4 - 12);
 	int ms = n->duration * 12;
-	tone(period_us, ms);
-}
 
-static void play_score(struct note *score, int speed)
-{
-	struct note *n = score;
-	while (n->duration) {
-		long int period_us = get_us(n->delta_a4 - 12);
-		int ms = n->duration * 12 * speed;
-		tone(period_us, ms);
-		ms *= 1500;
-		if (0) udelay(ms / 1000000, ms % 1000000);
-		n++;
-	}
+	if (debug)
+		printf("period us: %ld\n", period_us);
+
+	tone(period_us, ms);
 }
 
 static int on;
@@ -195,57 +196,83 @@ void *tone_thread(void *arg)
 	return NULL;
 }
 
-#define MIDI_C4 60
+#define MIDI_C4 (60 + 12)
 
 static void log_note(int note)
 {
 	saved_note = note + (C4 - MIDI_C4);
 }
 
-static void handle_buf(const char *in, int len)
+static int handle_buf(std::list<char> &q)
 {
-	if (in[0] & 0xf0 == 0xf0)
-		return;
+	char c = q.front();
+	char d, e;
 
-	if (len == 3) {
-		if (in[2] == 0)
+	q.pop_front();
+
+	if ((c & 0xf0) == 0xf0)
+		return 1;
+
+	if (c == 0x90) {
+		if (q.size() < 2) {
+			printf("Warning: not enough bytes: %d\n", q.size());
+			q.push_front(c);
+			return 0;
+		}
+		d = q.front();
+		q.pop_front();
+		e = q.front();
+		q.pop_front();
+		if (e == 0)
 			on--;
 		else {
 			on++;
-			log_note(in[1]);
+			log_note(d);
 		}
-		printf("on = %d, note = %d\n", on, in[1]);
+		printf("on = %d, note = %d\n", on, d);
+		return 3;
 	}
+
+	/* Unknown; skip */
+	printf("Warning: skipping unknown: %#x\n", c);
+	return 1;
 }
 
 static int process_midi(const char *dev)
 {
 	int i;
 	char inpacket[4];
+	int ret;
+	std::list<char> q;
 
 	// first open the sequencer device for reading.
 	int seqfd = open(dev, O_RDONLY);
 	if (seqfd == -1) {
-		printf("Error: cannot open %s\n", dev);
-		exit(1);
+		perror("open");
+		fprintf(stderr, "Error: cannot open %s\n", dev);
+		return 1;
 	} 
 
-	// now just wait around for MIDI bytes to arrive and print them to screen.
+	// now just wait around for MIDI bytes to arrive
 	while (1) {
 		int len = read(seqfd, &inpacket, sizeof(inpacket));
 		if (len == -1) {
 			perror("read");
 			continue;
 		}
+		for (i = 0; i < len; i++)
+			q.push_back(inpacket[i]);
 
-		if (1)
-			handle_buf(inpacket, len);
-		else {
+		if (debug) {
 			printf("received MIDI bytes:");
 			for (i = 0; i < len; i++)
 				printf(" %02x", inpacket[i]);
 			printf("\n");
 		}
+
+		do {
+			ret = handle_buf(q);
+		} while (ret > 0 && !q.empty());
 	}
 
 	return 0;
@@ -268,7 +295,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	process_midi(dev);
+	if (process_midi(dev)) {
+		fprintf(stderr, "Exiting...\n");
+		return 1;
+	}
 
 	/* wait for the second thread to finish */
 	if (pthread_join(thread, NULL)) {
