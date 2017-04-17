@@ -151,9 +151,10 @@ static void play_note(int floppy, struct note *n)
 #define MAX_DRIVES 2
 static int max_drives = MAX_DRIVES;
 
-static int last;
+static int last = -1;
 static int on[MAX_DRIVES];
 static int saved_note[MAX_DRIVES];
+static int single_mode;
 
 #define MIDI_C4 (60 + 12)
 
@@ -232,27 +233,27 @@ static int handle_buf(std::list<char> &q)
 			for (i = 0; i < max_drives; i++) {
 				if (on[i] && saved_note[i] == d) {
 					on[i] = 0;
+					if (on[1 - i])
+						last = 1 - i;
+					else
+						last = -1;
 					//last = !i;
 					break;
 				}
 			}
+		} else if (d == 36) {
+			single_mode = !single_mode;
+		} else if (single_mode) {
+			on[0] = 1;
+			saved_note[0] = d;
 		} else {
-			last = !last;
-			if (d > 55) {
-				for (i = max_drives - 1; i >= 0; i--) {
-					if (!on[i] || i == 0) {
-						on[i] = 1;
-						saved_note[i] = d;
-						break;
-					}
-				}
-			} else {
-				for (i = 0; i < max_drives; i++) {
-					if (!on[i] || i == 1) {
-						on[i] = 1;
-						saved_note[i] = d;
-						break;
-					}
+			for (i = max_drives - 1; i >= 0; i--) {
+				if (!on[i] || (last >= 0 && last != i)) {
+					on[i] = 1;
+					saved_note[i] = d;
+					if (last < 0)
+						last = i;
+					break;
 				}
 			}
 			/*
@@ -270,7 +271,7 @@ static int handle_buf(std::list<char> &q)
 		for (i = 0; i < max_drives; i++) {
 			printf("on[%d]: %d, note[%d]: %d ", i, on[i], i, saved_note[i]);
 		}
-		printf("\n");
+		printf("(%d)\n", single_mode);
 		//printf("on = %d, note = %d, floppy = %d\n", on, d, the_floppy);
 		return 3;
 	}
