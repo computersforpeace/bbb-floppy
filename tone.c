@@ -12,6 +12,7 @@
 
 #include <pthread.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "move-ctrl.h"
 
@@ -65,7 +66,7 @@ static void add_to_timespec(struct timespec *ts, int us)
 	ts->tv_nsec %= 1000000000;
 }
 
-int tone(int tone_us, int ms)
+int tone(int floppy, int tone_us, int ms)
 {
 	int cycles = 1000 * ms / tone_us;
 	int i, ret;
@@ -84,7 +85,7 @@ int tone(int tone_us, int ms)
 	}
 
 	for (i = 0; i < cycles; i++) {
-		take_step();
+		take_step(floppy);
 		add_to_timespec(&ts, tone_us);
 		ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 		if (ret < 0) {
@@ -131,17 +132,12 @@ struct note {
 	.duration	= (_duration), \
 }
 
-struct note a_tone[] = {
-	NOTE(C4, SIXTEENTH),
-	{0, 0},
-};
-
 enum {
 	SPEED_NORMAL = 4,
 	SPEED_FAST = 2,
 };
 
-static void play_note(struct note *n)
+static void play_note(int floppy, struct note *n)
 {
 	long int period_us = get_us(n->delta_a4 - 12);
 	int ms = n->duration * 12;
@@ -149,26 +145,33 @@ static void play_note(struct note *n)
 	if (debug)
 		printf("period us: %ld\n", period_us);
 
-	tone(period_us, ms);
+	tone(floppy, period_us, ms);
 }
 
-static int on;
-static int saved_note;
+static int last;
+static int on[2];
+static int saved_note[2];
 
-static void play_tone(void)
+#define MIDI_C4 (60 + 12)
+
+static int midi_to_note(int midi)
+{
+	return midi + (C4 - MIDI_C4);
+}
+
+static void play_tone(int idx)
 {
 	while (1) {
-		if (on) {
-			struct note n = NOTE(saved_note, SIXTEENTH);
+		if (on[idx]) {
+			struct note n = NOTE(midi_to_note(saved_note[idx]), SIXTEENTH);
 
-			if (0) play_note(a_tone);
-			play_note(&n);
+			play_note(idx, &n);
 		} else
 			udelay(0, 10000);
 	};
 }
 
-int start_tone()
+static int drive_init(void)
 {
 	init_tones();
 
@@ -179,7 +182,12 @@ int start_tone()
 	udelay(1, 0);
 	printf("GO!\n");
 
-	play_tone();
+	return 0;
+}
+
+static int start_tone(int idx)
+{
+	play_tone(idx);
 
 	return 0;
 }
@@ -188,25 +196,19 @@ int start_tone()
 /* this function is run by the second thread */
 void *tone_thread(void *arg)
 {
-	(void)arg;
+	int idx = (int)(uintptr_t)arg;
 
-	start_tone();
+	start_tone(idx);
 
 	/* the function must return something - NULL will do */
 	return NULL;
-}
-
-#define MIDI_C4 (60 + 12)
-
-static void log_note(int note)
-{
-	saved_note = note + (C4 - MIDI_C4);
 }
 
 static int handle_buf(std::list<char> &q)
 {
 	char c = q.front();
 	char d, e;
+	int i;
 
 	q.pop_front();
 
@@ -223,13 +225,31 @@ static int handle_buf(std::list<char> &q)
 		q.pop_front();
 		e = q.front();
 		q.pop_front();
-		if (e == 0)
-			on--;
-		else {
-			on++;
-			log_note(d);
+		if (e == 0) {
+			for (i = 0; i < 2; i++) {
+				if (on[i] && saved_note[i] == d) {
+					on[i] = 0;
+					last = !i;
+					break;
+				}
+			}
+		} else {
+			last = !last;
+			for (i = 1; i >= 0; i--) {
+				if (!on[i]) {
+					on[i] = 1;
+					saved_note[i] = d;
+					break;
+				}
+			}
+			//on[last] = 1;
+			//saved_note[last] = d;
 		}
-		printf("on = %d, note = %d\n", on, d);
+		for (i = 0; i < 2; i++) {
+			printf("on[%d]: %d, note[%d]: %d ", i, on[i], i, saved_note[i]);
+		}
+		printf("\n");
+		//printf("on = %d, note = %d, floppy = %d\n", on, d, the_floppy);
 		return 3;
 	}
 
@@ -280,8 +300,9 @@ static int process_midi(const char *dev)
 
 int main(int argc, char **argv)
 {
-	pthread_t thread;
+	pthread_t thread[2];
 	const char *dev;
+	int i;
 
 	if (argc < 2) {
 		printf("Error: missing arg\n");
@@ -290,9 +311,13 @@ int main(int argc, char **argv)
 
 	dev = argv[1];
 
-	if (pthread_create(&thread, NULL, tone_thread, /*arg*/NULL)) {
-		fprintf(stderr, "Error creating thread\n");
-		return 1;
+	drive_init();
+
+	for (i = 0; i < 2; i++) {
+		if (pthread_create(&thread[i], NULL, tone_thread, (void *)i)) {
+			fprintf(stderr, "Error creating thread %d\n", i);
+			return 1;
+		}
 	}
 
 	if (process_midi(dev)) {
@@ -300,10 +325,12 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	/* wait for the second thread to finish */
-	if (pthread_join(thread, NULL)) {
-		fprintf(stderr, "Error joining thread\n");
-		return 1;
+	/* wait for the threads to finish */
+	for (i = 0; i < 2; i++) {
+		if (pthread_join(thread[i], NULL)) {
+			fprintf(stderr, "Error joining thread\n");
+			return 1;
+		}
 	}
 
 	return 0;

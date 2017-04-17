@@ -10,8 +10,34 @@
 
 #include "move-ctrl.h"
 
-#define GPIO_IDX_STEP	60
-#define GPIO_IDX_DIR	50
+#define ARRAY_SIZE(x) ((int)(sizeof((x)) / sizeof((x)[0])))
+
+//#define GPIO_IDX_STEP	60
+#define GPIO_IDX_STEP	51
+//#define GPIO_IDX_DIR	50
+#define GPIO_IDX_DIR	48
+
+struct floppy {
+	int step_gpio;
+	int dir_gpio;
+
+	int step_fd;
+	int dir_fd;
+
+	int position;
+	int direction;
+};
+
+struct floppy floppies[] = {
+	{
+		.step_gpio = 60,
+		.dir_gpio = 50,
+	},
+	{
+		.step_gpio = 51,
+		.dir_gpio = 48,
+	},
+};
 
 #define FLOPPY_MAX_STEP	80
 
@@ -20,12 +46,6 @@
 #define GPIO_PATH	GPIO_SYSFS "/gpio%d"
 #define GPIO_VALUE	GPIO_PATH "/value"
 #define GPIO_DIRECTION	GPIO_PATH "/direction"
-
-static int floppy_position;
-static int floppy_direction;
-
-static int dir_fd;
-static int step_fd;
 
 static int export_gpio(int idx)
 {
@@ -94,25 +114,38 @@ static int open_gpio(int idx)
 	return fd;
 }
 
-static int init_gpios(void)
+static int init_gpio(struct floppy *f)
 {
 	int ret;
 
-	ret = export_gpio(GPIO_IDX_STEP);
+	ret = export_gpio(f->step_gpio);
 	if (ret)
 		return ret;
 
-	ret = export_gpio(GPIO_IDX_DIR);
+	ret = export_gpio(f->dir_gpio);
 	if (ret)
 		return ret;
 
-	step_fd = open_gpio(GPIO_IDX_STEP);
-	if (step_fd < 0)
-		return step_fd;
+	f->step_fd = open_gpio(f->step_gpio);
+	if (f->step_fd < 0)
+		return f->step_fd;
 
-	dir_fd = open_gpio(GPIO_IDX_DIR);
-	if (dir_fd < 0)
-		return dir_fd;
+	f->dir_fd = open_gpio(f->dir_gpio);
+	if (f->dir_fd < 0)
+		return f->dir_fd;
+
+	return 0;
+}
+
+static int init_gpios(void)
+{
+	int i, ret;
+
+	for (i = 0; i < ARRAY_SIZE(floppies); i++) {
+		ret = init_gpio(&floppies[i]);
+		if (ret)
+			return ret;
+	}
 
 	return 0;
 }
@@ -138,10 +171,10 @@ static int write_value(int fd, int val)
 	return 0;
 }
 
-static int set_direction(int dir)
+static int set_direction(struct floppy *f, int dir)
 {
-	write_value(dir_fd, dir);
-	floppy_direction = dir;
+	write_value(f->dir_fd, dir);
+	f->direction = dir;
 
 	return 0;
 }
@@ -162,34 +195,62 @@ static int udelay(int sec, int us)
 	return 0;
 }
 
-static int reset_floppy_positions(void)
+static int reset_floppy_position(struct floppy *f)
 {
 	int i;
 
-	set_direction(0);
+	set_direction(f, 0);
 
 	for (i = 0; i < FLOPPY_MAX_STEP; i++) {
-		write_value(step_fd, 0);
-		write_value(step_fd, 1);
+		write_value(f->step_fd, 0);
+		write_value(f->step_fd, 1);
 		udelay(0, 2000);
 	}
 
-	set_direction(1);
+	set_direction(f, 1);
 
 	return 0;
 }
 
-int take_step(void)
+static int reset_floppy_positions(void)
 {
-	write_value(step_fd, 0);
-	write_value(step_fd, 1);
-	floppy_position += floppy_direction * 2 - 1;
-	if (floppy_direction == 0 && floppy_position == 0)
-		set_direction(1);
-	else if (floppy_direction == 1 && floppy_position == FLOPPY_MAX_STEP - 1)
-		set_direction(0);
+	int i, ret;
+
+	for (i = 0; i < ARRAY_SIZE(floppies); i++) {
+		ret = reset_floppy_position(&floppies[i]);
+		if (ret)
+			return ret;
+	}
 
 	return 0;
+}
+
+static int _take_step(struct floppy *f)
+{
+	write_value(f->step_fd, 0);
+	write_value(f->step_fd, 1);
+	f->position += f->direction * 2 - 1;
+	if (f->direction == 0 && f->position == 0)
+		set_direction(f, 1);
+	else if (f->direction == 1 && f->position == FLOPPY_MAX_STEP - 1)
+		set_direction(f, 0);
+
+	return 0;
+}
+
+int take_step(int idx)
+{
+	if (idx < 0 || idx > ARRAY_SIZE(floppies)) {
+		fprintf(stderr, "Invalid floppy: %d\n", idx);
+		return -1;
+	}
+
+	return _take_step(&floppies[idx]);
+}
+
+int get_num_floppies(void)
+{
+	return ARRAY_SIZE(floppies);
 }
 
 int init_drives(void)

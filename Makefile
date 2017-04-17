@@ -4,7 +4,7 @@ LDLIBS := -lm -lrt -lpthread
 
 OBJECTS := floppy.o move-ctrl.o
 
-all: floppy tone
+all: tone
 
 floppy: $(OBJECTS)
 
