@@ -162,7 +162,7 @@ static struct note_thread threads[MAX_DRIVES];
 
 static int single_mode;
 
-#define MIDI_C4 (60 + 12)
+#define MIDI_C4 (60 + 9)
 
 static int midi_to_note(int midi)
 {
