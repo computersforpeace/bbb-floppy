@@ -151,8 +151,15 @@ static void play_note(int floppy, struct note *n)
 #define MAX_DRIVES 2
 static int max_drives = MAX_DRIVES;
 
-static int on[MAX_DRIVES];
-static int saved_note[MAX_DRIVES];
+struct note_thread {
+	pthread_mutex_t lock;
+	pthread_cond_t cond;
+	int on;
+	int note;
+};
+
+static struct note_thread threads[MAX_DRIVES];
+
 static int single_mode;
 
 #define MIDI_C4 (60 + 12)
@@ -164,13 +171,20 @@ static int midi_to_note(int midi)
 
 static void play_tone(int idx)
 {
+	struct note_thread *t = &threads[idx];
+	int key;
+
 	while (1) {
-		if (on[idx]) {
-			struct note n = NOTE(midi_to_note(saved_note[idx]), SIXTEENTH);
+		pthread_mutex_lock(&t->lock);
+		while (!t->on)
+			pthread_cond_wait(&t->cond, &t->lock);
+		key = t->note;
+		pthread_mutex_unlock(&t->lock);
+		{
+			struct note n = NOTE(midi_to_note(key), SIXTEENTH);
 
 			play_note(idx, &n);
-		} else
-			udelay(0, 10000);
+		}
 	};
 }
 
@@ -207,40 +221,61 @@ void *tone_thread(void *arg)
 	return NULL;
 }
 
+/* Called with t->lock held */
+static void signal_thread_note(struct note_thread *t, int key)
+{
+	t->note = key;
+	t->on = 1;
+	pthread_cond_signal(&t->cond);
+}
+
 static void handle_key(int key, bool pressed)
 {
 	int i;
 	static int last = -1;
+	struct note_thread *t;
 
 	if (!pressed) {
 		for (i = 0; i < max_drives; i++) {
-			if (on[i] && saved_note[i] == key) {
-				on[i] = 0;
-				if (on[1 - i])
+			t = &threads[i];
+			pthread_mutex_lock(&t->lock);
+			if (t->on && t->note == key) {
+				t->on = 0;
+				pthread_mutex_lock(&threads[1 - i].lock);
+				if (threads[1 - i].on)
 					last = 1 - i;
 				else
 					last = -1;
+				pthread_mutex_unlock(&threads[1 - i].lock);
+				pthread_mutex_unlock(&t->lock);
 				break;
 			}
+			pthread_mutex_unlock(&t->lock);
 		}
 	} else if (key == 36) {
 		single_mode = !single_mode;
 	} else if (single_mode) {
-		on[0] = 1;
-		saved_note[0] = key;
+		t = &threads[0];
+		pthread_mutex_lock(&t->lock);
+		signal_thread_note(t, key);
+		pthread_mutex_unlock(&t->lock);
 	} else {
 		for (i = max_drives - 1; i >= 0; i--) {
-			if (!on[i] || (last >= 0 && last != i)) {
-				on[i] = 1;
-				saved_note[i] = key;
+			t = &threads[i];
+			pthread_mutex_lock(&t->lock);
+			if (!t->on || (last >= 0 && last != i)) {
+				signal_thread_note(t, key);
 				if (last < 0)
 					last = i;
+				pthread_mutex_unlock(&t->lock);
 				break;
 			}
+			pthread_mutex_unlock(&t->lock);
 		}
 	}
 	for (i = 0; i < max_drives; i++) {
-		printf("on[%d]: %d, note[%d]: %d ", i, on[i], i, saved_note[i]);
+		t = &threads[i];
+		printf("on[%d]: %d, note[%d]: %d ", i, t->on, i, t->note);
 	}
 	printf("(%d)\n", single_mode);
 }
@@ -330,7 +365,9 @@ int main(int argc, char **argv)
 
 	drive_init();
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < MAX_DRIVES; i++) {
+		pthread_mutex_init(&threads[i].lock, NULL);
+		pthread_cond_init(&threads[i].cond, NULL);
 		if (pthread_create(&thread[i], NULL, tone_thread, (void *)i)) {
 			fprintf(stderr, "Error creating thread %d\n", i);
 			return 1;
@@ -343,7 +380,7 @@ int main(int argc, char **argv)
 	}
 
 	/* wait for the threads to finish */
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < MAX_DRIVES; i++) {
 		if (pthread_join(thread[i], NULL)) {
 			fprintf(stderr, "Error joining thread\n");
 			return 1;
