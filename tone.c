@@ -151,7 +151,6 @@ static void play_note(int floppy, struct note *n)
 #define MAX_DRIVES 2
 static int max_drives = MAX_DRIVES;
 
-static int last = -1;
 static int on[MAX_DRIVES];
 static int saved_note[MAX_DRIVES];
 static int single_mode;
@@ -208,11 +207,48 @@ void *tone_thread(void *arg)
 	return NULL;
 }
 
+static void handle_key(int key, bool pressed)
+{
+	int i;
+	static int last = -1;
+
+	if (!pressed) {
+		for (i = 0; i < max_drives; i++) {
+			if (on[i] && saved_note[i] == key) {
+				on[i] = 0;
+				if (on[1 - i])
+					last = 1 - i;
+				else
+					last = -1;
+				break;
+			}
+		}
+	} else if (key == 36) {
+		single_mode = !single_mode;
+	} else if (single_mode) {
+		on[0] = 1;
+		saved_note[0] = key;
+	} else {
+		for (i = max_drives - 1; i >= 0; i--) {
+			if (!on[i] || (last >= 0 && last != i)) {
+				on[i] = 1;
+				saved_note[i] = key;
+				if (last < 0)
+					last = i;
+				break;
+			}
+		}
+	}
+	for (i = 0; i < max_drives; i++) {
+		printf("on[%d]: %d, note[%d]: %d ", i, on[i], i, saved_note[i]);
+	}
+	printf("(%d)\n", single_mode);
+}
+
 static int handle_buf(std::list<char> &q)
 {
 	char c = q.front();
 	char d, e;
-	int i;
 
 	q.pop_front();
 
@@ -229,50 +265,8 @@ static int handle_buf(std::list<char> &q)
 		q.pop_front();
 		e = q.front();
 		q.pop_front();
-		if (e == 0) {
-			for (i = 0; i < max_drives; i++) {
-				if (on[i] && saved_note[i] == d) {
-					on[i] = 0;
-					if (on[1 - i])
-						last = 1 - i;
-					else
-						last = -1;
-					//last = !i;
-					break;
-				}
-			}
-		} else if (d == 36) {
-			single_mode = !single_mode;
-		} else if (single_mode) {
-			on[0] = 1;
-			saved_note[0] = d;
-		} else {
-			for (i = max_drives - 1; i >= 0; i--) {
-				if (!on[i] || (last >= 0 && last != i)) {
-					on[i] = 1;
-					saved_note[i] = d;
-					if (last < 0)
-						last = i;
-					break;
-				}
-			}
-			/*
-			for (i = max_drives - 1; i >= 0; i--) {
-				if (!on[i] || i == 0 || d < 50) {
-					on[i] = 1;
-					saved_note[i] = d;
-					break;
-				}
-			}
-			*/
-			//on[last] = 1;
-			//saved_note[last] = d;
-		}
-		for (i = 0; i < max_drives; i++) {
-			printf("on[%d]: %d, note[%d]: %d ", i, on[i], i, saved_note[i]);
-		}
-		printf("(%d)\n", single_mode);
-		//printf("on = %d, note = %d, floppy = %d\n", on, d, the_floppy);
+
+		handle_key(d, e != 0);
 		return 3;
 	}
 
